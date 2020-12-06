@@ -3,6 +3,7 @@ import threading
 import sys
 import random
 import time
+import json
 
 
 class MultithreadingTCPServer:
@@ -38,20 +39,28 @@ class MultithreadingTCPServer:
         print('Connecting to', clientName, clientPort)
         try:
             while True:
-                # message = clientSocket.recv(1024)
-                # if len(message) == 0:
-                #     break
-                # sentence = message.decode()
-                # if sentence == 'start':
-                while self.deck.length() > 0:
-                    self.num = self.num % 13 + 1
-                    card = self.deck.draw()
-                    for i in self.socketList:  # loop all clients
-                        i.send((str(card)+' '+str(self.num)).encode())
-                    time.sleep(0.5)
-                # elif sentence == 'again':
-                #     self.deck.__init__()
-                #     self.deck.shuffule()
+                message = clientSocket.recv(1024)
+                if len(message) == 0:
+                    break
+                sentence = message.decode()
+                if sentence == 'start':
+                    while self.deck.length() > 0:
+                        self.num = self.num % 13 + 1
+                        card = self.deck.draw()
+                        # json
+                        data = {'state': 'on', 'card': str(
+                            card), 'num': self.num}
+                        # loop all clients
+                        for i in self.socketList:
+                            i.send(json.dumps(data).encode())
+                        time.sleep(0.5)
+                    # state = off
+                    data = {'state': 'off', 'card': 'card', 'num': 0}
+                    for i in self.socketList:
+                        i.send(json.dumps(data).encode())
+                elif sentence == 'again':
+                    self.deck.__init__()
+                    self.deck.shuffule()
         except:
             clientSocket.close()
         finally:

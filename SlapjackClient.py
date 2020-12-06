@@ -3,7 +3,9 @@ import threading
 import sys
 import random
 import tkinter as tk
-import math
+import time
+import json
+import subprocess
 
 
 class MultithreadingTCPClient:
@@ -11,40 +13,50 @@ class MultithreadingTCPClient:
         self.serverName = name
         self.serverPort = port
         self.username = username
+        self.clientSocket = socket(AF_INET, SOCK_STREAM)
 
-    def start(self):
+    def start(self, game):
         try:
-            with socket(AF_INET, SOCK_STREAM) as clientSocket:
-                print('Connect to server', self.serverName, ':', self.serverPort)
-                clientSocket.connect((self.serverName, self.serverPort))
-                clientAddress, clientPort = clientSocket.getsockname()
-                print('Client', clientAddress, ':', clientPort)
-                print('Connecting to server',
-                      self.serverName, ':', self.serverPort)
-                thread = threading.Thread(
-                    target=self.receive, args=(clientSocket,))
-                thread.start()
-                # while True:
-                #     # sentence = input()
-                #     # clientSocket.send(sentence.encode())
-                #     pass
+            # with socket(AF_INET, SOCK_STREAM) as self.clientSocket:
+            print('Connect to server', self.serverName, ':', self.serverPort)
+            self.clientSocket.connect((self.serverName, self.serverPort))
+            clientAddress, clientPort = self.clientSocket.getsockname()
+            print('Client', clientAddress, ':', clientPort)
+            print('Connecting to server',
+                  self.serverName, ':', self.serverPort)
+            self.receive(self.clientSocket, game)
+            # thread = threading.Thread(
+            #     target=self.receive, args=(clientSocket,))
+            # thread.start()
+            # while True:
+            #     # sentence = input()
+            #     # clientSocket.send(sentence.encode())
+            #     pass
         except:
             pass
         finally:
             print('Connection shutdown')
 
-    def receive(self, clientSocket):
+    def receive(self, clientSocket, game):
         try:
             while True:
                 message = clientSocket.recv(1024)
                 if len(message) == 0:
                     break
-                sentence = message.decode()
-                card = sentence.split()[0]
-                num = sentence.split()[1]
-                print(card, num)
+                data = json.loads(message.decode())
+                if data['state'] == 'off':
+                    game.again_button['state'] = tk.NORMAL
+                else:
+                    game.card_label['text'] = data['card']
+                    thread = threading.Thread(
+                        target=self.mediaPlayer, args=(data,))
+                    thread.start()
+
         except:
             pass
+
+    def mediaPlayer(self, data):
+        subprocess.call(['afplay', 'media/'+str(data['num'])+'.m4a'])
 
 
 class LoginPage:
@@ -62,19 +74,40 @@ class LoginPage:
 
 class GamePage:
     def __init__(self, window, username):
+        self.server = MultithreadingTCPClient(
+            serverName, serverPort, username)
+        # GUI
         self.username = username
-        self.game_frame = tk.Frame(window)
-        self.game_frame.pack()
-        self.username_label = tk.Label(self.game_frame, text=username)
+        self.user_frame = tk.Frame(window)
+        self.user_frame.pack()
+        self.username_label = tk.Label(self.user_frame, text=username)
         self.username_label.pack()
         self.start_button = tk.Button(
-            self.game_frame, text='開始遊戲', command=self.start)
+            self.user_frame, text='開始遊戲', command=self.gameStart)
         self.start_button.pack()
+        self.again_button = tk.Button(
+            self.user_frame, text='再來一局', command=self.gameAgain, state=tk.DISABLED)
+        self.again_button.pack()
+        self.game_frame = tk.Frame(window)
+        self.game_frame.pack()
+        self.card_label = tk.Label(self.game_frame)
+        self.card_label.pack()
+        # create new thread
+        thread = threading.Thread(target=self.clientThread)
+        thread.start()
 
-    def start(self):
+    def gameStart(self):
+        self.start_button['state'] = tk.DISABLED
+        self.server.clientSocket.send('start'.encode())
+
+    def gameAgain(self):
+        self.again_button['state'] = tk.DISABLED
+        self.start_button['state'] = tk.NORMAL
+        self.server.clientSocket.send('again'.encode())
+
+    def clientThread(self):
         # socket
-        server = MultithreadingTCPClient(serverName, serverPort, self.username)
-        server.start()
+        self.server.start(self)
 
 
 def enterKeyEvent(event):
@@ -97,7 +130,6 @@ if len(sys.argv) < 3:
 else:
     serverName = sys.argv[1]
     serverPort = int(sys.argv[2])
-
 
 # GUI
 window = tk.Tk()
