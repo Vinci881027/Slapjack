@@ -13,6 +13,11 @@ class MultithreadingTCPServer:
         self.deck = StardardDeck()
         self.num = 0
         self.socketList = []
+        self.username = []
+        self.startList = []
+        self.againList = []
+        self.matchList = []
+        self.scoreList = []
 
     def start(self):
         try:
@@ -25,7 +30,15 @@ class MultithreadingTCPServer:
                 print('Multithreading server binding success')
                 while True:
                     clientSocket, address = serverSocket.accept()
-                    self.socketList.append(clientSocket)  # 把socket加入list
+                    # add socket to list
+                    self.socketList.append(clientSocket)
+                    # receive username from client
+                    name = clientSocket.recv(1024)
+                    self.username.append(name.decode())
+                    self.startList.append(False)
+                    self.againList.append(False)
+                    self.matchList.append(False)
+                    self.scoreList.append(0)
                     thread = threading.Thread(
                         target=self.__handleClient, args=(clientSocket,))
                     thread.start()
@@ -43,28 +56,66 @@ class MultithreadingTCPServer:
                 if len(message) == 0:
                     break
                 sentence = message.decode()
-                if sentence == 'start':
-                    while self.deck.length() > 0:
-                        self.num = self.num % 13 + 1
-                        card = self.deck.draw()
-                        # json
-                        data = {'state': 'on', 'card': str(
-                            card), 'num': self.num}
-                        # loop all clients
-                        for i in self.socketList:
-                            i.send(json.dumps(data).encode())
-                        time.sleep(0.5)
-                    # state = off
-                    data = {'state': 'off', 'card': 'card', 'num': 0}
-                    for i in self.socketList:
-                        i.send(json.dumps(data).encode())
-                elif sentence == 'again':
+                for i in range(len(self.socketList)):
+                    if self.socketList[i] == clientSocket:
+                        if sentence == 'start':
+                            self.startList[i] = True
+                        elif sentence == 'again':
+                            self.againList[i] = True
+                        elif sentence == 'match':
+                            self.scoreList[i] = self.scoreList[i]+1
+                            data = {'start': 'false', 'again': 'true',
+                                    'card': 'card', 'num': 0, 'score': self.scoreList}
+                            for i in self.socketList:
+                                i.send(json.dumps(data).encode())
+                        elif sentence == 'not match':
+                            self.scoreList[i] = self.scoreList[i]-1
+                            data = {'start': 'false', 'again': 'true',
+                                    'card': 'card', 'num': 0, 'score': self.scoreList}
+                            for i in self.socketList:
+                                i.send(json.dumps(data).encode())
+                if all(self.startList) == True:
+                    self.startList = [
+                        False for i in range(len(self.startList))]
+                    # thread to draw card
+                    thread = threading.Thread(
+                        target=self.drawCard, args=(clientSocket,))
+                    thread.start()
+                if all(self.againList) == True:
+                    self.againList = [
+                        False for i in range(len(self.againList))]
                     self.deck.__init__()
                     self.deck.shuffule()
+                    data = {'start': 'false', 'again': 'true',
+                            'card': 'card', 'num': 0, 'score': self.scoreList}
+                    for i in self.socketList:
+                        i.send(json.dumps(data).encode())
+                # if any(self.matchList) == True:
+                #     for i in range(len(self.matchList)):
+                #         if self.matchList[i] == True:
+                #             self.scoreList[i] = self.scoreList[i]+1
+                #     self.matchList = [
+                #         False for i in range(len(self.matchList))]
         except:
             clientSocket.close()
         finally:
             print('Disconnecting to', clientName, ':', clientPort)
+
+    def drawCard(self, clientSocket):
+        while self.deck.length() > 0:
+            # send card to client
+            self.num = self.num % 13 + 1
+            card = self.deck.draw()
+            data = {'start': 'true', 'again': 'false', 'card': str(
+                card), 'num': self.num, 'score': self.scoreList}
+            for i in self.socketList:
+                i.send(json.dumps(data).encode())
+            time.sleep(0.8)
+        # all cards clear
+        data = {'start': 'false', 'again': 'false',
+                'card': 'card', 'num': 0, 'score': self.scoreList}
+        for i in self.socketList:
+            i.send(json.dumps(data).encode())
 
 
 class Card():

@@ -14,28 +14,27 @@ class MultithreadingTCPClient:
         self.serverPort = port
         self.username = username
         self.clientSocket = socket(AF_INET, SOCK_STREAM)
+        self.cardValue = 1
+        self.numValue = 0
 
     def start(self, game):
         try:
-            # with socket(AF_INET, SOCK_STREAM) as self.clientSocket:
             print('Connect to server', self.serverName, ':', self.serverPort)
             self.clientSocket.connect((self.serverName, self.serverPort))
             clientAddress, clientPort = self.clientSocket.getsockname()
             print('Client', clientAddress, ':', clientPort)
             print('Connecting to server',
                   self.serverName, ':', self.serverPort)
+            # send username to server
+            self.clientSocket.send(self.username.encode())
             self.receive(self.clientSocket, game)
-            # thread = threading.Thread(
-            #     target=self.receive, args=(clientSocket,))
-            # thread.start()
-            # while True:
-            #     # sentence = input()
-            #     # clientSocket.send(sentence.encode())
-            #     pass
         except:
             pass
         finally:
             print('Connection shutdown')
+
+    def end(self):
+        self.clientSocket.close()
 
     def receive(self, clientSocket, game):
         try:
@@ -44,14 +43,31 @@ class MultithreadingTCPClient:
                 if len(message) == 0:
                     break
                 data = json.loads(message.decode())
-                if data['state'] == 'off':
-                    game.again_button['state'] = tk.NORMAL
-                else:
+                # start
+                print(data['score'])
+                if data['start'] == 'true':
                     game.card_label['text'] = data['card']
+                    cardStr = data['card'][:-1]
+                    if cardStr == 'A':
+                        self.cardValue = 1
+                    elif cardStr == 'J':
+                        self.cardValue = 11
+                    elif cardStr == 'Q':
+                        self.cardValue = 12
+                    elif cardStr == 'K':
+                        self.cardValue = 13
+                    else:
+                        self.cardValue = int(cardStr)
+                    self.numValue = data['num']
                     thread = threading.Thread(
                         target=self.mediaPlayer, args=(data,))
                     thread.start()
-
+                else:
+                    game.again_button['state'] = tk.NORMAL
+                # again
+                if data['again'] == 'true':
+                    game.start_button['state'] = tk.NORMAL
+                    game.again_button['state'] = tk.DISABLED
         except:
             pass
 
@@ -77,8 +93,10 @@ class GamePage:
         self.server = MultithreadingTCPClient(
             serverName, serverPort, username)
         # GUI
+        self.window = window
+        self.window.bind('<space>', self.space)
         self.username = username
-        self.user_frame = tk.Frame(window)
+        self.user_frame = tk.Frame(self.window)
         self.user_frame.pack()
         self.username_label = tk.Label(self.user_frame, text=username)
         self.username_label.pack()
@@ -88,13 +106,24 @@ class GamePage:
         self.again_button = tk.Button(
             self.user_frame, text='再來一局', command=self.gameAgain, state=tk.DISABLED)
         self.again_button.pack()
-        self.game_frame = tk.Frame(window)
+        self.game_frame = tk.Frame(self.window)
         self.game_frame.pack()
-        self.card_label = tk.Label(self.game_frame)
+        self.card_label = tk.Label(self.game_frame, font=("Times", 80))
         self.card_label.pack()
+        self.exit_button = tk.Button(
+            self.user_frame, text='離開遊戲', command=self.exit)
+        self.exit_button.pack(side=tk.BOTTOM)
         # create new thread
         thread = threading.Thread(target=self.clientThread)
         thread.start()
+
+    def clientThread(self):
+        # socket
+        self.server.start(self)
+
+    def exit(self):
+        self.server.end()
+        self.window.destroy()
 
     def gameStart(self):
         self.start_button['state'] = tk.DISABLED
@@ -102,15 +131,18 @@ class GamePage:
 
     def gameAgain(self):
         self.again_button['state'] = tk.DISABLED
-        self.start_button['state'] = tk.NORMAL
         self.server.clientSocket.send('again'.encode())
 
-    def clientThread(self):
-        # socket
-        self.server.start(self)
+    def space(self, event):
+        if self.server.cardValue == self.server.numValue:
+            self.server.cardValue = 1
+            self.server.numValue = 0
+            self.server.clientSocket.send('match'.encode())
+        else:
+            self.server.clientSocket.send('not match'.encode())
 
 
-def enterKeyEvent(event):
+def enter(event):
     submitUsername()
 
 
@@ -135,6 +167,6 @@ else:
 window = tk.Tk()
 window.title('SlapJack')
 window.geometry('800x600')
-window.bind('<Return>', enterKeyEvent)
+window.bind('<Return>', enter)
 login = LoginPage(window)
 window.mainloop()
