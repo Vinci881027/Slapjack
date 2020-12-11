@@ -26,7 +26,7 @@ class MultithreadingTCPServer:
                 print('Bind server socket to',
                       self.serverName, ':', self.serverPort)
                 serverSocket.bind((self.serverName, self.serverPort))
-                serverSocket.listen(7)
+                serverSocket.listen(4)
                 print('Multithreading server binding success')
                 while True:
                     clientSocket, address = serverSocket.accept()
@@ -64,14 +64,14 @@ class MultithreadingTCPServer:
                             self.againList[i] = True
                         elif sentence == 'match':
                             self.scoreList[i] = self.scoreList[i]+1
-                            data = {'start': 'false', 'again': 'true',
-                                    'card': 'card', 'num': 0, 'score': self.scoreList}
+                            data = {'start': 'none', 'again': 'none',
+                                    'card': 'card', 'num': 0, 'score': self.scoreList, 'user': self.username}
                             for i in self.socketList:
                                 i.send(json.dumps(data).encode())
                         elif sentence == 'not match':
                             self.scoreList[i] = self.scoreList[i]-1
-                            data = {'start': 'false', 'again': 'true',
-                                    'card': 'card', 'num': 0, 'score': self.scoreList}
+                            data = {'start': 'none', 'again': 'none',
+                                    'card': 'card', 'num': 0, 'score': self.scoreList, 'user': self.username}
                             for i in self.socketList:
                                 i.send(json.dumps(data).encode())
                 if all(self.startList) == True:
@@ -87,15 +87,9 @@ class MultithreadingTCPServer:
                     self.deck.__init__()
                     self.deck.shuffule()
                     data = {'start': 'false', 'again': 'true',
-                            'card': 'card', 'num': 0, 'score': self.scoreList}
+                            'card': 'card', 'num': 0, 'score': self.scoreList, 'user': self.username}
                     for i in self.socketList:
                         i.send(json.dumps(data).encode())
-                # if any(self.matchList) == True:
-                #     for i in range(len(self.matchList)):
-                #         if self.matchList[i] == True:
-                #             self.scoreList[i] = self.scoreList[i]+1
-                #     self.matchList = [
-                #         False for i in range(len(self.matchList))]
         except:
             clientSocket.close()
         finally:
@@ -107,13 +101,13 @@ class MultithreadingTCPServer:
             self.num = self.num % 13 + 1
             card = self.deck.draw()
             data = {'start': 'true', 'again': 'false', 'card': str(
-                card), 'num': self.num, 'score': self.scoreList}
+                card), 'num': self.num, 'score': self.scoreList, 'user': self.username}
             for i in self.socketList:
                 i.send(json.dumps(data).encode())
-            time.sleep(0.8)
+            time.sleep(0.3)
         # all cards clear
         data = {'start': 'false', 'again': 'false',
-                'card': 'card', 'num': 0, 'score': self.scoreList}
+                'card': 'card', 'num': 0, 'score': self.scoreList, 'user': self.username}
         for i in self.socketList:
             i.send(json.dumps(data).encode())
 

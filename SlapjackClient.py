@@ -43,8 +43,29 @@ class MultithreadingTCPClient:
                 if len(message) == 0:
                     break
                 data = json.loads(message.decode())
+                # update score board
+                for i in range(len(data['user'])):
+                    if i == 0:
+                        game.user1_label['text'] = data['user'][i]
+                        game.user1_label.pack()
+                        game.score1_label['text'] = data['score'][i]
+                        game.score1_label.pack()
+                    elif i == 1:
+                        game.user2_label['text'] = data['user'][i]
+                        game.user2_label.pack()
+                        game.score2_label['text'] = data['score'][i]
+                        game.score2_label.pack()
+                    elif i == 2:
+                        game.user3_label['text'] = data['user'][i]
+                        game.user3_label.pack()
+                        game.score3_label['text'] = data['score'][i]
+                        game.score3_label.pack()
+                    elif i == 3:
+                        game.user4_label['text'] = data['user'][i]
+                        game.user4_label.pack()
+                        game.score4_label['text'] = data['score'][i]
+                        game.score4_label.pack()
                 # start
-                print(data['score'])
                 if data['start'] == 'true':
                     game.card_label['text'] = data['card']
                     cardStr = data['card'][:-1]
@@ -62,7 +83,7 @@ class MultithreadingTCPClient:
                     thread = threading.Thread(
                         target=self.mediaPlayer, args=(data,))
                     thread.start()
-                else:
+                elif data['start'] == 'false':
                     game.again_button['state'] = tk.NORMAL
                 # again
                 if data['again'] == 'true':
@@ -108,11 +129,33 @@ class GamePage:
         self.again_button.pack()
         self.game_frame = tk.Frame(self.window)
         self.game_frame.pack()
-        self.card_label = tk.Label(self.game_frame, font=("Times", 80))
+        self.card_label = tk.Label(self.game_frame, font=("Times", 100))
         self.card_label.pack()
+        self.board_frame = tk.Frame(self.window)
+        self.board_frame.pack()
         self.exit_button = tk.Button(
             self.user_frame, text='離開遊戲', command=self.exit)
-        self.exit_button.pack(side=tk.BOTTOM)
+        self.exit_button.pack()
+        # player 1
+        self.player1_frame = tk.Frame(self.board_frame)
+        self.player1_frame.pack(side=tk.LEFT)
+        self.user1_label = tk.Label(self.player1_frame)
+        self.score1_label = tk.Label(self.player1_frame)
+        # player 2
+        self.player2_frame = tk.Frame(self.board_frame)
+        self.player2_frame.pack(side=tk.LEFT)
+        self.user2_label = tk.Label(self.player2_frame)
+        self.score2_label = tk.Label(self.player2_frame)
+        # player 3
+        self.player3_frame = tk.Frame(self.board_frame)
+        self.player3_frame.pack(side=tk.LEFT)
+        self.user3_label = tk.Label(self.player3_frame)
+        self.score3_label = tk.Label(self.player3_frame)
+        # player 4
+        self.player4_frame = tk.Frame(self.board_frame)
+        self.player4_frame.pack(side=tk.LEFT)
+        self.user4_label = tk.Label(self.player4_frame)
+        self.score4_label = tk.Label(self.player4_frame)
         # create new thread
         thread = threading.Thread(target=self.clientThread)
         thread.start()
@@ -138,8 +181,20 @@ class GamePage:
             self.server.cardValue = 1
             self.server.numValue = 0
             self.server.clientSocket.send('match'.encode())
+            thread = threading.Thread(
+                target=self.yes)
+            thread.start()
         else:
             self.server.clientSocket.send('not match'.encode())
+            thread = threading.Thread(
+                target=self.no)
+            thread.start()
+
+    def yes(self):
+        subprocess.call(['afplay', 'media/yes.mp3'])
+
+    def no(self):
+        subprocess.call(['afplay', 'media/no.mp3'])
 
 
 def enter(event):
