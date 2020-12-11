@@ -93,7 +93,7 @@ class MultithreadingTCPClient:
             pass
 
     def mediaPlayer(self, data):
-        subprocess.call(['afplay', 'media/'+str(data['num'])+'.m4a'])
+        subprocess.call(['afplay', 'media/'+str(data['num'])+'.mp3'])
 
 
 class LoginPage:
@@ -119,7 +119,8 @@ class GamePage:
         self.username = username
         self.user_frame = tk.Frame(self.window)
         self.user_frame.pack()
-        self.username_label = tk.Label(self.user_frame, text=username)
+        self.username_label = tk.Label(
+            self.user_frame, text=username, font=("Arial", 80))
         self.username_label.pack()
         self.start_button = tk.Button(
             self.user_frame, text='開始遊戲', command=self.gameStart)
@@ -129,7 +130,7 @@ class GamePage:
         self.again_button.pack()
         self.game_frame = tk.Frame(self.window)
         self.game_frame.pack()
-        self.card_label = tk.Label(self.game_frame, font=("Times", 100))
+        self.card_label = tk.Label(self.game_frame, font=("Times", 180))
         self.card_label.pack()
         self.board_frame = tk.Frame(self.window)
         self.board_frame.pack()
@@ -139,23 +140,23 @@ class GamePage:
         # player 1
         self.player1_frame = tk.Frame(self.board_frame)
         self.player1_frame.pack(side=tk.LEFT)
-        self.user1_label = tk.Label(self.player1_frame)
-        self.score1_label = tk.Label(self.player1_frame)
+        self.user1_label = tk.Label(self.player1_frame, font=("Arial", 40))
+        self.score1_label = tk.Label(self.player1_frame, font=("Arial", 40))
         # player 2
         self.player2_frame = tk.Frame(self.board_frame)
         self.player2_frame.pack(side=tk.LEFT)
-        self.user2_label = tk.Label(self.player2_frame)
-        self.score2_label = tk.Label(self.player2_frame)
+        self.user2_label = tk.Label(self.player2_frame, font=("Arial", 40))
+        self.score2_label = tk.Label(self.player2_frame, font=("Arial", 40))
         # player 3
         self.player3_frame = tk.Frame(self.board_frame)
         self.player3_frame.pack(side=tk.LEFT)
-        self.user3_label = tk.Label(self.player3_frame)
-        self.score3_label = tk.Label(self.player3_frame)
+        self.user3_label = tk.Label(self.player3_frame, font=("Arial", 40))
+        self.score3_label = tk.Label(self.player3_frame, font=("Arial", 40))
         # player 4
         self.player4_frame = tk.Frame(self.board_frame)
         self.player4_frame.pack(side=tk.LEFT)
-        self.user4_label = tk.Label(self.player4_frame)
-        self.score4_label = tk.Label(self.player4_frame)
+        self.user4_label = tk.Label(self.player4_frame, font=("Arial", 40))
+        self.score4_label = tk.Label(self.player4_frame, font=("Arial", 40))
         # create new thread
         thread = threading.Thread(target=self.clientThread)
         thread.start()
@@ -220,7 +221,7 @@ else:
 
 # GUI
 window = tk.Tk()
-window.title('SlapJack')
+window.title('眼明手快小遊戲')
 window.geometry('800x600')
 window.bind('<Return>', enter)
 login = LoginPage(window)

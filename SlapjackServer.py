@@ -104,7 +104,7 @@ class MultithreadingTCPServer:
                 card), 'num': self.num, 'score': self.scoreList, 'user': self.username}
             for i in self.socketList:
                 i.send(json.dumps(data).encode())
-            time.sleep(0.3)
+            time.sleep(0.7)
         # all cards clear
         data = {'start': 'false', 'again': 'false',
                 'card': 'card', 'num': 0, 'score': self.scoreList, 'user': self.username}
