@@ -16,7 +16,6 @@ class MultithreadingTCPServer:
         self.username = []
         self.startList = []
         self.againList = []
-        self.matchList = []
         self.scoreList = []
 
     def start(self):
@@ -37,7 +36,6 @@ class MultithreadingTCPServer:
                     self.username.append(name.decode())
                     self.startList.append(False)
                     self.againList.append(False)
-                    self.matchList.append(False)
                     self.scoreList.append(0)
                     thread = threading.Thread(
                         target=self.__handleClient, args=(clientSocket,))
